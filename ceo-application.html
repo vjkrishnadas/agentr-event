@@ -1,0 +1,1651 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CEO Application — AgentR</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Reset & Base ─────────────────────────────────── */
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --deep-blue: #0F172A;
+      --slate-800: #1E293B;
+      --slate-700: #334155;
+      --slate-600: #475569;
+      --slate-400: #94A3B8;
+      --slate-300: #CBD5E1;
+      --electric-blue: #2563EB;
+      --electric-blue-light: #3B82F6;
+      --cyan: #22D3EE;
+      --purple: #7C3AED;
+      --purple-light: #A78BFA;
+      --soft-gray: #F1F5F9;
+      --white: #FFFFFF;
+      --success: #10B981;
+      --danger: #EF4444;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--deep-blue);
+      color: var(--white);
+      min-height: 100vh;
+      overflow-x: hidden;
+      position: relative;
+    }
+
+    /* ── Animated Background ──────────────────────────── */
+    .bg-grid {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      background-image:
+        linear-gradient(rgba(37, 99, 235, .06) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(37, 99, 235, .06) 1px, transparent 1px);
+      background-size: 60px 60px;
+      animation: gridShift 20s linear infinite;
+    }
+
+    @keyframes gridShift {
+      0%   { background-position: 0 0; }
+      100% { background-position: 60px 60px; }
+    }
+
+    .bg-orb {
+      position: fixed;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: .35;
+      z-index: 0;
+      pointer-events: none;
+    }
+    .bg-orb--blue   { width: 600px; height: 600px; background: var(--electric-blue); top: -200px; left: -200px; animation: orbFloat1 14s ease-in-out infinite; }
+    .bg-orb--purple { width: 500px; height: 500px; background: var(--purple);        bottom: -180px; right: -180px; animation: orbFloat2 18s ease-in-out infinite; }
+    .bg-orb--cyan   { width: 350px; height: 350px; background: var(--cyan);          top: 50%; left: 60%; animation: orbFloat3 12s ease-in-out infinite; }
+
+    @keyframes orbFloat1 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(60px,80px); } }
+    @keyframes orbFloat2 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-50px,-60px); } }
+    @keyframes orbFloat3 { 0%,100% { transform: translate(0,0); } 50% { transform: translate(-40px,50px); } }
+
+    /* Neural network lines */
+    .neural-canvas {
+      position: fixed;
+      inset: 0;
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    /* ── Layout ───────────────────────────────────────── */
+    .page-wrapper {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* ── Navbar ───────────────────────────────────────── */
+    .navbar {
+      width: 100%;
+      max-width: 1200px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 0;
+      animation: fadeSlideDown .8s ease-out;
+    }
+
+    .navbar__logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 700;
+      color: var(--white);
+      text-decoration: none;
+    }
+
+    .navbar__logo-icon {
+      width: 38px;
+      height: 38px;
+      border-radius: 10px;
+      overflow: hidden;
+      flex-shrink: 0;
+      box-shadow: 0 0 20px rgba(37, 99, 235, .4);
+    }
+
+    .navbar__logo-icon img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 10px;
+    }
+
+    .navbar__badge {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .65rem;
+      font-weight: 500;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: rgba(34, 211, 238, .12);
+      color: var(--cyan);
+      border: 1px solid rgba(34, 211, 238, .2);
+    }
+
+    /* ── Hero ─────────────────────────────────────────── */
+    .hero {
+      text-align: center;
+      max-width: 720px;
+      margin: 40px auto 0;
+      animation: fadeSlideUp 1s ease-out .2s both;
+    }
+
+    .hero__eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .75rem;
+      font-weight: 500;
+      color: var(--cyan);
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(34, 211, 238, .08);
+      border: 1px solid rgba(34, 211, 238, .15);
+      margin-bottom: 24px;
+    }
+
+    .hero__eyebrow .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: var(--cyan);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%,100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34,211,238,.5); }
+      50%     { opacity: .6; box-shadow: 0 0 0 6px rgba(34,211,238,0); }
+    }
+
+    .hero__title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: clamp(2rem, 5vw, 3.2rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -1px;
+      margin-bottom: 16px;
+    }
+
+    .hero__title .gradient-text {
+      background: linear-gradient(135deg, var(--electric-blue), var(--cyan), var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero__sub {
+      font-size: 1.05rem;
+      color: var(--slate-400);
+      line-height: 1.6;
+      max-width: 540px;
+      margin: 0 auto;
+    }
+
+    /* ── Form Card ────────────────────────────────────── */
+    .form-card {
+      width: 100%;
+      max-width: 560px;
+      margin: 48px auto 0;
+      border-radius: 24px;
+      background: rgba(30, 41, 59, .45);
+      border: 1px solid rgba(51, 65, 85, .6);
+      backdrop-filter: blur(20px);
+      padding: 40px 36px;
+      position: relative;
+      overflow: hidden;
+      animation: fadeSlideUp 1s ease-out .6s both;
+    }
+
+    .form-card::before {
+      content: '';
+      position: absolute;
+      inset: -1px;
+      border-radius: 24px;
+      padding: 1px;
+      background: linear-gradient(135deg, rgba(37,99,235,.3), rgba(124,58,237,.2), rgba(34,211,238,.2));
+      -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+      -webkit-mask-composite: xor;
+      mask-composite: exclude;
+      pointer-events: none;
+    }
+
+    /* Glow effect on hover */
+    .form-card__glow {
+      position: absolute;
+      width: 300px;
+      height: 300px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(37,99,235,.15), transparent 70%);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity .4s;
+      transform: translate(-50%, -50%);
+    }
+    .form-card:hover .form-card__glow { opacity: 1; }
+
+    .form-card__header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .form-card__icon {
+      width: 56px;
+      height: 56px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, var(--electric-blue), var(--purple));
+      display: inline-grid;
+      place-items: center;
+      margin-bottom: 16px;
+      box-shadow: 0 0 30px rgba(37,99,235,.3);
+      animation: iconFloat 4s ease-in-out infinite;
+    }
+
+    @keyframes iconFloat {
+      0%,100% { transform: translateY(0); }
+      50%     { transform: translateY(-6px); }
+    }
+
+    .form-card__icon svg { width: 28px; height: 28px; fill: none; stroke: var(--white); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+    .form-card__title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.45rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .form-card__subtitle {
+      font-size: .88rem;
+      color: var(--slate-400);
+    }
+
+    /* ── Role badge ────────────────────────────────────── */
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      margin-bottom: 28px;
+      padding: 8px 18px;
+      border-radius: 999px;
+      background: linear-gradient(135deg, rgba(37,99,235,.12), rgba(124,58,237,.12));
+      border: 1px solid rgba(37,99,235,.25);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      font-weight: 500;
+      color: var(--electric-blue-light);
+      letter-spacing: .5px;
+    }
+
+    .role-badge__dot {
+      width: 6px;
+      height: 6px;
+      background: var(--success);
+      border-radius: 50%;
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    /* ── Input Group ───────────────────────────────────── */
+    .input-group {
+      margin-bottom: 24px;
+    }
+
+    .input-group__label {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .82rem;
+      font-weight: 600;
+      color: var(--slate-300);
+      margin-bottom: 10px;
+    }
+
+    .input-group__label svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--electric-blue-light);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper__prefix {
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      pointer-events: none;
+    }
+
+    .input-wrapper__prefix svg {
+      width: 20px;
+      height: 20px;
+      fill: none;
+      stroke: var(--slate-400);
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: stroke .3s;
+    }
+
+    .input-wrapper__prefix .linkedin-icon {
+      width: 22px;
+      height: 22px;
+      border-radius: 4px;
+      object-fit: contain;
+      opacity: .7;
+      transition: opacity .3s;
+    }
+
+    .input-field:focus ~ .input-wrapper__prefix .linkedin-icon {
+      opacity: 1;
+    }
+
+    .input-wrapper__divider {
+      width: 1px;
+      height: 20px;
+      background: var(--slate-700);
+      transition: background .3s;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 16px 16px 16px 60px;
+      border-radius: 14px;
+      border: 1.5px solid var(--slate-700);
+      background: rgba(15, 23, 42, .6);
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: .92rem;
+      font-weight: 400;
+      outline: none;
+      transition: border-color .3s, box-shadow .3s, background .3s;
+    }
+
+    .input-field::placeholder {
+      color: var(--slate-600);
+    }
+
+    .input-field:focus {
+      border-color: var(--electric-blue);
+      background: rgba(15, 23, 42, .8);
+      box-shadow: 0 0 0 4px rgba(37, 99, 235, .12), 0 0 20px rgba(37, 99, 235, .08);
+    }
+
+    .input-field:focus ~ .input-wrapper__prefix svg,
+    .input-field:focus ~ .input-wrapper__prefix .input-wrapper__divider {
+      /* handled via JS */
+    }
+
+    .input-field.input-field--valid {
+      border-color: var(--success);
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, .1);
+    }
+
+    .input-field.input-field--invalid {
+      border-color: var(--danger);
+      box-shadow: 0 0 0 4px rgba(239, 68, 68, .1);
+    }
+
+    .input-group__hint {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: .72rem;
+      color: var(--slate-400);
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .input-group__hint svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--slate-400);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .input-group__error {
+      display: none;
+      align-items: center;
+      gap: 6px;
+      margin-top: 10px;
+      font-size: .76rem;
+      color: var(--danger);
+      animation: shakeIn .4s ease-out;
+    }
+
+    .input-group__error svg {
+      width: 14px;
+      height: 14px;
+      stroke: var(--danger);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    .input-group__error.visible { display: flex; }
+
+    @keyframes shakeIn {
+      0%   { transform: translateX(-8px); opacity: 0; }
+      40%  { transform: translateX(4px); }
+      70%  { transform: translateX(-2px); }
+      100% { transform: translateX(0); opacity: 1; }
+    }
+
+    /* ── Submit Button ─────────────────────────────────── */
+    .submit-btn {
+      width: 100%;
+      padding: 16px;
+      border: none;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--electric-blue), var(--purple));
+      color: var(--white);
+      font-family: 'Inter', sans-serif;
+      font-size: .95rem;
+      font-weight: 600;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+      transition: transform .2s, box-shadow .3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .submit-btn::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,.15), transparent 60%);
+      opacity: 0;
+      transition: opacity .3s;
+    }
+
+    .submit-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 40px rgba(37, 99, 235, .35);
+    }
+
+    .submit-btn:hover::before { opacity: 1; }
+
+    .submit-btn:active { transform: translateY(0) scale(.98); }
+
+    .submit-btn:disabled {
+      cursor: not-allowed;
+      opacity: .6;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    .submit-btn svg {
+      width: 20px;
+      height: 20px;
+      stroke: var(--white);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      transition: transform .3s;
+    }
+
+    .submit-btn:hover svg { transform: translateX(3px); }
+
+    /* Shimmer effect on button */
+    .submit-btn__shimmer {
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 60%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), transparent);
+      animation: shimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes shimmer {
+      0%   { left: -100%; }
+      100% { left: 200%; }
+    }
+
+    /* ── Loading State ─────────────────────────────────── */
+    .submit-btn .spinner {
+      display: none;
+      width: 22px;
+      height: 22px;
+    }
+
+    .submit-btn.loading .spinner { display: block; }
+    .submit-btn.loading .submit-btn__label,
+    .submit-btn.loading .submit-btn__shimmer,
+    .submit-btn.loading svg:not(.spinner) { display: none; }
+
+    /* ── Success State ─────────────────────────────────── */
+    .success-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 20px 0;
+      animation: fadeSlideUp .6s ease-out;
+    }
+
+    .success-state.visible { display: flex; }
+
+    .success-state__circle {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(16,185,129,.15), rgba(34,211,238,.1));
+      border: 2px solid var(--success);
+      display: grid;
+      place-items: center;
+      margin-bottom: 20px;
+      animation: successPop .5s cubic-bezier(.68,-.55,.27,1.55);
+    }
+
+    @keyframes successPop {
+      0%   { transform: scale(0); }
+      100% { transform: scale(1); }
+    }
+
+    .success-state__circle svg {
+      width: 32px;
+      height: 32px;
+      stroke: var(--success);
+      fill: none;
+      stroke-width: 2.5;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-dasharray: 60;
+      stroke-dashoffset: 60;
+      animation: checkDraw .6s ease-out .3s forwards;
+    }
+
+    @keyframes checkDraw {
+      to { stroke-dashoffset: 0; }
+    }
+
+    .success-state__title {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.3rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+
+    .success-state__desc {
+      font-size: .88rem;
+      color: var(--slate-400);
+      line-height: 1.6;
+      max-width: 360px;
+    }
+
+    .success-state__url {
+      margin-top: 16px;
+      padding: 10px 20px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, .6);
+      border: 1px solid var(--slate-700);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      color: var(--electric-blue-light);
+      word-break: break-all;
+      max-width: 100%;
+    }
+
+    /* ── Score Section ─────────────────────────────────── */
+    .score-section {
+      margin-top: 24px;
+      width: 100%;
+      animation: fadeSlideUp .5s ease-out .4s both;
+    }
+
+    .score-loading {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 18px 20px;
+      border-radius: 12px;
+      background: rgba(15, 23, 42, .5);
+      border: 1px solid var(--slate-700);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      color: var(--slate-400);
+    }
+
+    .score-loading.hidden { display: none; }
+
+    .score-loading__spinner {
+      width: 28px;
+      height: 28px;
+      flex-shrink: 0;
+    }
+
+    .score-result {
+      display: none;
+    }
+
+    .score-result.visible {
+      display: block;
+      animation: fadeSlideUp .6s ease-out;
+    }
+
+    .score-card {
+      padding: 32px 24px;
+      border-radius: 16px;
+      background: rgba(15, 23, 42, .6);
+      border: 1px solid rgba(51, 65, 85, .6);
+      text-align: center;
+    }
+
+    .score-card__hero {
+      display: flex;
+      align-items: baseline;
+      justify-content: center;
+      gap: 4px;
+      margin-bottom: 8px;
+    }
+
+    .score-card__value {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 4.5rem;
+      font-weight: 700;
+      line-height: 1;
+      background: linear-gradient(135deg, var(--cyan), var(--electric-blue-light), var(--purple-light));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: scoreReveal 1s cubic-bezier(.16, 1, .3, 1);
+    }
+
+    .score-card__value-suffix {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.5rem;
+      font-weight: 500;
+      color: var(--slate-500);
+    }
+
+    @keyframes scoreReveal {
+      0%   { opacity: 0; transform: scale(.3) translateY(20px); }
+      60%  { opacity: 1; transform: scale(1.08) translateY(-4px); }
+      100% { opacity: 1; transform: scale(1) translateY(0); }
+    }
+
+    .score-card__label {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .7rem;
+      font-weight: 500;
+      color: var(--slate-400);
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      margin-bottom: 20px;
+      padding-bottom: 20px;
+      border-bottom: 1px solid var(--slate-700);
+    }
+
+    .score-card__category {
+      margin-bottom: 16px;
+    }
+
+    .score-card__category span {
+      display: inline-block;
+      padding: 6px 16px;
+      border-radius: 999px;
+      background: rgba(37, 99, 235, .12);
+      border: 1px solid rgba(37, 99, 235, .25);
+      font-family: 'Inter', sans-serif;
+      font-size: .78rem;
+      font-weight: 600;
+      color: var(--electric-blue-light);
+    }
+
+    .score-card__body {
+      font-size: .82rem;
+      color: var(--slate-300);
+      line-height: 1.7;
+      white-space: pre-wrap;
+      text-align: left;
+      margin-top: 16px;
+    }
+
+    .score-card__body p {
+      margin-bottom: 8px;
+    }
+
+    .score-card__body strong {
+      color: var(--white);
+    }
+
+    .score-card__raw {
+      margin-top: 16px;
+      padding: 14px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, .8);
+      border: 1px solid var(--slate-700);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem;
+      color: var(--slate-400);
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    .score-card__raw::-webkit-scrollbar { width: 4px; }
+    .score-card__raw::-webkit-scrollbar-track { background: transparent; }
+    .score-card__raw::-webkit-scrollbar-thumb { background: var(--slate-700); border-radius: 2px; }
+
+    .score-error {
+      padding: 16px;
+      border-radius: 12px;
+      background: rgba(239, 68, 68, .08);
+      border: 1px solid rgba(239, 68, 68, .25);
+      color: var(--danger);
+      font-size: .82rem;
+      text-align: center;
+    }
+
+    /* ── Analyzing State ──────────────────────────────── */
+    .analyzing-state {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 30px 0 10px;
+      animation: fadeSlideUp .5s ease-out;
+    }
+
+    .analyzing-state.visible { display: flex; }
+
+    /* Orbital scanner ring */
+    .scanner-ring {
+      position: relative;
+      width: 100px;
+      height: 100px;
+      margin-bottom: 28px;
+    }
+
+    .scanner-ring__orbit {
+      position: absolute;
+      inset: 0;
+      border-radius: 50%;
+      border: 2px solid transparent;
+    }
+
+    .scanner-ring__orbit--1 {
+      border-top-color: var(--electric-blue);
+      border-right-color: rgba(37,99,235,.3);
+      animation: orbitSpin 2s linear infinite;
+    }
+
+    .scanner-ring__orbit--2 {
+      inset: 10px;
+      border-bottom-color: var(--purple);
+      border-left-color: rgba(124,58,237,.3);
+      animation: orbitSpin 2.5s linear infinite reverse;
+    }
+
+    .scanner-ring__orbit--3 {
+      inset: 20px;
+      border-top-color: var(--cyan);
+      border-right-color: rgba(34,211,238,.3);
+      animation: orbitSpin 1.8s linear infinite;
+    }
+
+    .scanner-ring__core {
+      position: absolute;
+      inset: 30px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, rgba(37,99,235,.2), rgba(124,58,237,.2));
+      display: grid;
+      place-items: center;
+      animation: corePulse 2s ease-in-out infinite;
+    }
+
+    .scanner-ring__core svg {
+      width: 24px;
+      height: 24px;
+      stroke: var(--cyan);
+      fill: none;
+      stroke-width: 2;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+    }
+
+    @keyframes orbitSpin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes corePulse {
+      0%, 100% { box-shadow: 0 0 10px rgba(37,99,235,.2); }
+      50%      { box-shadow: 0 0 30px rgba(37,99,235,.4), 0 0 60px rgba(124,58,237,.15); }
+    }
+
+    /* Status message with typewriter */
+    .analyzing-state__status {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .82rem;
+      font-weight: 500;
+      color: var(--white);
+      margin-bottom: 8px;
+      min-height: 1.4em;
+      overflow: hidden;
+    }
+
+    .analyzing-state__substatus {
+      font-size: .72rem;
+      color: var(--slate-400);
+      margin-bottom: 24px;
+      min-height: 1.2em;
+      transition: opacity .3s;
+    }
+
+    /* Progress bar */
+    .progress-track {
+      width: 100%;
+      height: 6px;
+      border-radius: 999px;
+      background: rgba(51, 65, 85, .5);
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .progress-track__fill {
+      position: relative;
+      height: 100%;
+      border-radius: 999px;
+      background: var(--electric-blue);
+      width: 0%;
+      transition: width 1.6s cubic-bezier(.16, 1, .3, 1);
+      will-change: width;
+      overflow: hidden;
+    }
+
+    .progress-track__fill::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      border-radius: inherit;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(255, 255, 255, .3) 50%,
+        transparent 100%
+      );
+      background-size: 200% 100%;
+      animation: progressShimmer 1.8s ease-in-out infinite;
+    }
+
+    @keyframes progressShimmer {
+      0%   { background-position: 200% 0; }
+      100% { background-position: -200% 0; }
+    }
+
+    /* Analysis log lines */
+    .analysis-log {
+      width: 100%;
+      background: rgba(15, 23, 42, .6);
+      border: 1px solid var(--slate-700);
+      border-radius: 12px;
+      padding: 16px;
+      max-height: 180px;
+      overflow-y: auto;
+      text-align: left;
+    }
+
+    .analysis-log::-webkit-scrollbar { width: 4px; }
+    .analysis-log::-webkit-scrollbar-track { background: transparent; }
+    .analysis-log::-webkit-scrollbar-thumb { background: var(--slate-700); border-radius: 2px; }
+
+    .log-line {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .68rem;
+      line-height: 1.6;
+      color: var(--slate-400);
+      animation: logFadeIn .4s ease-out;
+      margin-bottom: 4px;
+    }
+
+    .log-line:last-child { margin-bottom: 0; }
+
+    .log-line__icon {
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .log-line__icon--check { color: var(--success); }
+    .log-line__icon--spinner { display: inline-flex; align-items: center; }
+    .log-line__icon--spinner svg { width: 14px; height: 14px; }
+    .log-line__icon--dot { color: var(--electric-blue-light); }
+
+    .log-line--active { color: var(--cyan); }
+    .log-line--done { color: var(--slate-400); }
+
+    @keyframes logFadeIn {
+      from { opacity: 0; transform: translateX(-8px); }
+      to   { opacity: 1; transform: translateX(0); }
+    }
+
+
+    /* ── Trust Bar ─────────────────────────────────────── */
+    .trust-bar {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 32px;
+      flex-wrap: wrap;
+      animation: fadeSlideUp 1s ease-out .9s both;
+    }
+
+    .trust-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: .76rem;
+      color: var(--slate-400);
+    }
+
+    .trust-item svg {
+      width: 16px;
+      height: 16px;
+      stroke: var(--slate-400);
+      fill: none;
+      stroke-width: 2;
+    }
+
+    /* ── Footer ───────────────────────────────────────── */
+    .footer {
+      margin-top: 48px;
+      padding: 20px 0;
+      text-align: center;
+      font-size: .72rem;
+      color: var(--slate-600);
+      animation: fadeSlideUp 1s ease-out 1.1s both;
+    }
+
+    .footer a {
+      color: var(--slate-400);
+      text-decoration: none;
+      transition: color .3s;
+    }
+    .footer a:hover { color: var(--electric-blue-light); }
+
+    /* ── Utility animations ──────────────────────────── */
+    @keyframes fadeSlideUp {
+      from { opacity: 0; transform: translateY(24px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    @keyframes fadeSlideDown {
+      from { opacity: 0; transform: translateY(-16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ── Particles ────────────────────────────────────── */
+    .particle {
+      position: fixed;
+      width: 3px;
+      height: 3px;
+      background: var(--electric-blue);
+      border-radius: 50%;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 0;
+      animation: particleDrift linear infinite;
+    }
+
+    @keyframes particleDrift {
+      0%   { opacity: 0; transform: translateY(0) scale(0); }
+      10%  { opacity: .6; transform: scale(1); }
+      90%  { opacity: .3; }
+      100% { opacity: 0; transform: translateY(-100vh) scale(0); }
+    }
+
+    /* ── Responsive ───────────────────────────────────── */
+    @media (max-width: 600px) {
+      .form-card { padding: 28px 22px; margin-top: 36px; }
+      .hero { margin-top: 24px; }
+      .trust-bar { gap: 16px; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Background effects -->
+  <div class="bg-grid"></div>
+  <div class="bg-orb bg-orb--blue"></div>
+  <div class="bg-orb bg-orb--purple"></div>
+  <div class="bg-orb bg-orb--cyan"></div>
+  <canvas class="neural-canvas" id="neuralCanvas"></canvas>
+
+  <div class="page-wrapper">
+
+    <!-- Navbar -->
+    <nav class="navbar">
+      <a href="#" class="navbar__logo">
+        <span class="navbar__logo-icon"><img src="logo.png" alt="AgentR Logo" /></span>
+        AgentR
+      </a>
+      <span class="navbar__badge">CEO Hiring Pipeline</span>
+    </nav>
+
+    <!-- Hero -->
+    <section class="hero">
+      <div class="hero__eyebrow">
+        <span class="pulse-dot"></span>
+        AI-POWERED EXECUTIVE SCREENING
+      </div>
+      <h1 class="hero__title">
+        Apply for <span class="gradient-text">Chief Executive Officer</span>
+      </h1>
+      <p class="hero__sub">
+        Submit your LinkedIn profile and let our AI evaluate your executive readiness.
+      </p>
+    </section>
+
+
+    <!-- Form Card -->
+    <div class="form-card" id="formCard">
+      <div class="form-card__glow" id="cardGlow"></div>
+
+      <!-- Form Content -->
+      <div id="formContent">
+  
+        <form id="applicationForm" novalidate>
+          <div class="input-group">
+            <label class="input-group__label" for="linkedinUrl">
+              <!-- Link icon -->
+              <svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+              LinkedIn Profile URL
+            </label>
+            <div class="input-wrapper">
+              <input
+                type="url"
+                id="linkedinUrl"
+                class="input-field"
+                placeholder="https://www.linkedin.com/in/your-profile"
+                autocomplete="off"
+                spellcheck="false"
+              />
+              <div class="input-wrapper__prefix">
+                <!-- LinkedIn icon from Flaticon CDN -->
+                <img
+                  src="https://cdn-icons-png.flaticon.com/512/174/174857.png"
+                  alt="LinkedIn"
+                  class="linkedin-icon"
+                />
+                <span class="input-wrapper__divider"></span>
+              </div>
+            </div>
+
+            <div class="input-group__hint" id="inputHint">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+              <span id="hintText">Paste a valid LinkedIn profile URL</span>
+            </div>
+
+            <div class="input-group__error" id="inputError">
+              <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+              <span id="errorText">Please enter a valid LinkedIn URL</span>
+            </div>
+          </div>
+
+          <button type="submit" class="submit-btn" id="submitBtn">
+            <span class="submit-btn__shimmer"></span>
+            <span class="submit-btn__label">Submit Application</span>
+            <!-- Arrow icon -->
+            <svg viewBox="0 0 24 24"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+            <svg class="spinner" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" fill="rgba(255,255,255,.25)"/><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" fill="white"><animateTransform attributeName="transform" type="rotate" dur="0.75s" values="0 12 12;360 12 12" repeatCount="indefinite"/></path></svg>
+          </button>
+        </form>
+      </div>
+
+      <!-- Analyzing State -->
+      <div class="analyzing-state" id="analyzingState">
+        <div class="scanner-ring">
+          <div class="scanner-ring__orbit scanner-ring__orbit--1"></div>
+          <div class="scanner-ring__orbit scanner-ring__orbit--2"></div>
+          <div class="scanner-ring__orbit scanner-ring__orbit--3"></div>
+          <div class="scanner-ring__core">
+            <svg viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></svg>
+          </div>
+        </div>
+
+        <div class="analyzing-state__status" id="analyzeStatus">Initializing AI engine...</div>
+        <div class="analyzing-state__substatus" id="analyzeSubstatus">Please wait while we process your profile</div>
+
+        <div class="progress-track">
+          <div class="progress-track__fill" id="progressFill"></div>
+        </div>
+
+        <div class="analysis-log" id="analysisLog"></div>
+      </div>
+
+      <!-- Success State -->
+      <div class="success-state" id="successState">
+        <div class="success-state__circle">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+        </div>
+        <h3 class="success-state__title">Application Submitted</h3>
+        <p class="success-state__desc">
+          Our AI has finished analyzing your executive profile.
+        </p>
+        <div class="success-state__url" id="submittedUrl"></div>
+
+        <!-- Score Display -->
+        <div class="score-section" id="scoreSection">
+          <div class="score-loading" id="scoreLoading">
+            <svg class="score-loading__spinner" width="24" height="24" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><circle cx="4" cy="12" r="3" fill="var(--cyan)" opacity="1"><animate id="spinner_qYjJ" begin="0;spinner_t4KZ.end-0.25s" attributeName="opacity" dur="0.75s" values="1;.2" fill="freeze"/></circle><circle cx="12" cy="12" r="3" fill="var(--cyan)" opacity=".4"><animate begin="spinner_qYjJ.begin+0.15s" attributeName="opacity" dur="0.75s" values="1;.2" fill="freeze"/></circle><circle cx="20" cy="12" r="3" fill="var(--cyan)" opacity=".3"><animate id="spinner_t4KZ" begin="spinner_qYjJ.begin+0.3s" attributeName="opacity" dur="0.75s" values="1;.2" fill="freeze"/></circle></svg>
+            <span>Fetching your executive readiness score...</span>
+          </div>
+          <div class="score-result" id="scoreResult"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Trust bar -->
+    <div class="trust-bar">
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Results in &lt;30 seconds</span>
+      </div>
+      <div class="trust-item">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87"/><path d="M16 3.13a4 4 0 010 7.75"/></svg>
+        <span>2,400+ executives screened</span>
+      </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+      Powered by <a href="#">AgentR</a> &mdash; AI-native executive hiring platform
+    </footer>
+  </div>
+
+  <script>
+    // ── Neural Network Canvas ──────────────────────────
+    (function initNeural() {
+      const canvas = document.getElementById('neuralCanvas');
+      const ctx = canvas.getContext('2d');
+      let nodes = [];
+      let w, h;
+
+      function resize() {
+        w = canvas.width = window.innerWidth;
+        h = canvas.height = window.innerHeight;
+      }
+
+      function createNodes() {
+        nodes = [];
+        const count = Math.floor((w * h) / 18000);
+        for (let i = 0; i < count; i++) {
+          nodes.push({
+            x: Math.random() * w,
+            y: Math.random() * h,
+            vx: (Math.random() - .5) * .3,
+            vy: (Math.random() - .5) * .3,
+            r: Math.random() * 1.5 + .5,
+          });
+        }
+      }
+
+      function draw() {
+        ctx.clearRect(0, 0, w, h);
+
+        // Draw connections
+        for (let i = 0; i < nodes.length; i++) {
+          for (let j = i + 1; j < nodes.length; j++) {
+            const dx = nodes[i].x - nodes[j].x;
+            const dy = nodes[i].y - nodes[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 140) {
+              ctx.beginPath();
+              ctx.moveTo(nodes[i].x, nodes[i].y);
+              ctx.lineTo(nodes[j].x, nodes[j].y);
+              ctx.strokeStyle = `rgba(37, 99, 235, ${.06 * (1 - dist / 140)})`;
+              ctx.lineWidth = .5;
+              ctx.stroke();
+            }
+          }
+        }
+
+        // Draw nodes
+        for (const n of nodes) {
+          ctx.beginPath();
+          ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+          ctx.fillStyle = 'rgba(37, 99, 235, .2)';
+          ctx.fill();
+
+          n.x += n.vx;
+          n.y += n.vy;
+          if (n.x < 0 || n.x > w) n.vx *= -1;
+          if (n.y < 0 || n.y > h) n.vy *= -1;
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      window.addEventListener('resize', () => { resize(); createNodes(); });
+      resize();
+      createNodes();
+      draw();
+    })();
+
+    // ── Floating Particles ─────────────────────────────
+    (function initParticles() {
+      const colors = ['#2563EB', '#7C3AED', '#22D3EE'];
+      for (let i = 0; i < 20; i++) {
+        const p = document.createElement('div');
+        p.classList.add('particle');
+        p.style.left = Math.random() * 100 + '%';
+        p.style.bottom = '-10px';
+        p.style.width = (Math.random() * 3 + 1) + 'px';
+        p.style.height = p.style.width;
+        p.style.background = colors[Math.floor(Math.random() * colors.length)];
+        p.style.animationDuration = (Math.random() * 12 + 8) + 's';
+        p.style.animationDelay = (Math.random() * 10) + 's';
+        document.body.appendChild(p);
+      }
+    })();
+
+    // ── Card Glow Follow ──────────────────────────────
+    const formCard = document.getElementById('formCard');
+    const cardGlow = document.getElementById('cardGlow');
+
+    formCard.addEventListener('mousemove', (e) => {
+      const rect = formCard.getBoundingClientRect();
+      cardGlow.style.left = (e.clientX - rect.left) + 'px';
+      cardGlow.style.top  = (e.clientY - rect.top) + 'px';
+    });
+
+    // ── Form Logic ──────────────────────────────────────
+    const form        = document.getElementById('applicationForm');
+    const input       = document.getElementById('linkedinUrl');
+    const submitBtn   = document.getElementById('submitBtn');
+    const inputHint   = document.getElementById('inputHint');
+    const hintText    = document.getElementById('hintText');
+    const inputError  = document.getElementById('inputError');
+    const errorText   = document.getElementById('errorText');
+    const formContent = document.getElementById('formContent');
+    const successState = document.getElementById('successState');
+    const submittedUrl = document.getElementById('submittedUrl');
+
+    const linkedinRegex = /^https?:\/\/(www\.)?linkedin\.com\/in\/[\w\-%.]+\/?(\?.*)?$/i;
+
+    // Live validation
+    let debounce;
+    input.addEventListener('input', () => {
+      clearTimeout(debounce);
+      debounce = setTimeout(() => {
+        const val = input.value.trim();
+        input.classList.remove('input-field--valid', 'input-field--invalid');
+        inputError.classList.remove('visible');
+
+        if (!val) {
+          hintText.textContent = 'Paste a valid LinkedIn profile URL';
+          return;
+        }
+
+        if (linkedinRegex.test(val)) {
+          input.classList.add('input-field--valid');
+          hintText.textContent = 'Valid LinkedIn profile detected';
+          inputHint.querySelector('svg').style.stroke = '#10B981';
+        } else {
+          if (val.length > 10) {
+            input.classList.add('input-field--invalid');
+            hintText.textContent = 'Paste a valid LinkedIn profile URL';
+            inputHint.querySelector('svg').style.stroke = '';
+          }
+        }
+      }, 300);
+    });
+
+    // Focus states
+    input.addEventListener('focus', () => {
+      const prefixIcon = document.querySelector('.input-wrapper__prefix svg');
+      const divider    = document.querySelector('.input-wrapper__divider');
+      prefixIcon.style.color = '#3B82F6';
+      divider.style.background = '#3B82F6';
+    });
+
+    input.addEventListener('blur', () => {
+      const prefixIcon = document.querySelector('.input-wrapper__prefix svg');
+      const divider    = document.querySelector('.input-wrapper__divider');
+      prefixIcon.style.color = '';
+      divider.style.background = '';
+    });
+
+    // Submit
+    form.addEventListener('submit', (e) => {
+      e.preventDefault();
+
+      const val = input.value.trim();
+
+      // Validate
+      if (!val) {
+        showError('LinkedIn URL is required');
+        input.classList.add('input-field--invalid');
+        shakeInput();
+        return;
+      }
+
+      if (!linkedinRegex.test(val)) {
+        showError('Please enter a valid LinkedIn profile URL (e.g. https://linkedin.com/in/name)');
+        input.classList.add('input-field--invalid');
+        shakeInput();
+        return;
+      }
+
+      // Submit to n8n webhook
+      submitBtn.classList.add('loading');
+      submitBtn.disabled = true;
+      inputError.classList.remove('visible');
+
+      const webhookUrl = 'https://say1055.app.n8n.cloud/webhook-test/7b98c882-e3cf-45e6-91d3-d9d0e57f7e51';
+
+      // Fire the webhook — single call that scrapes, scores, and returns result
+      const webhookPromise = fetch(webhookUrl, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          linkedinUrl: val,
+          role: 'Chief Executive Officer',
+          submittedAt: new Date().toISOString()
+        })
+      })
+      .then(res => {
+        if (!res.ok) throw new Error('Submission failed (' + res.status + ')');
+        return res.text().then(text => {
+          try { return JSON.parse(text); } catch { return text; }
+        });
+      });
+
+      // Immediately show analyzing state
+      formContent.style.display = 'none';
+      submitBtn.classList.remove('loading');
+      submitBtn.disabled = false;
+
+      // Hide the trust bar
+      document.querySelector('.trust-bar').style.display = 'none';
+
+      const analyzingState = document.getElementById('analyzingState');
+      analyzingState.classList.add('visible');
+
+      // Run the 30s analyzing animation, then show success
+      runAnalyzingSequence(val, webhookPromise);
+    });
+
+    function showError(msg) {
+      errorText.textContent = msg;
+      inputError.classList.add('visible');
+    }
+
+    function shakeInput() {
+      input.style.animation = 'none';
+      input.offsetHeight; // reflow
+      input.style.animation = 'shakeIn .4s ease-out';
+      setTimeout(() => { input.style.animation = ''; }, 400);
+    }
+
+    // ── Analyzing Sequence (30s) ────────────────────────
+    function runAnalyzingSequence(linkedinUrl, webhookPromise) {
+      const statusEl    = document.getElementById('analyzeStatus');
+      const substatusEl = document.getElementById('analyzeSubstatus');
+      const progressEl  = document.getElementById('progressFill');
+      const logEl       = document.getElementById('analysisLog');
+
+      let webhookDone = false;
+      let webhookError = null;
+      let webhookData = null;
+
+      webhookPromise
+        .then(data => { webhookDone = true; webhookData = data; })
+        .catch(err => { webhookDone = true; webhookError = err; });
+
+      // Analysis steps with timing
+      const steps = [
+        { at: 0,     status: 'Connecting to LinkedIn...', sub: 'Establishing secure connection', progress: 5,   log: '→ Initiating profile fetch...', icon: 'spinner' },
+        { at: 3000,  status: 'Fetching profile data...', sub: 'Retrieving profile information', progress: 15,  log: '✓ Connection established', icon: 'check', prev: true },
+        { at: 7000,  status: 'Analyzing your profile...', sub: 'Scanning experience & skills', progress: 30,  log: '→ Extracting profile data...', icon: 'spinner' },
+        { at: 12000, status: 'Evaluating leadership signals...', sub: 'Assessing executive experience', progress: 50, log: '✓ Profile data received', icon: 'check', prev: true },
+        { at: 17000, status: 'Running AI assessment...', sub: 'Generating executive readiness score', progress: 70, log: '→ Running AI models...', icon: 'spinner' },
+        { at: 23000, status: 'Compiling results...', sub: 'Building your scorecard', progress: 90, log: '✓ AI assessment complete', icon: 'check', prev: true },
+        { at: 28000, status: 'Almost done...', sub: 'Preparing your results', progress: 98, log: '→ Finalizing report...', icon: 'spinner' },
+        { at: 30000, status: 'Done!', sub: '', progress: 100, log: '✓ Report ready', icon: 'check', prev: true, done: true },
+      ];
+
+      const timeouts = [];
+
+      steps.forEach(step => {
+        const t = setTimeout(() => {
+          // Update status
+          statusEl.style.opacity = 0;
+          setTimeout(() => {
+            statusEl.textContent = step.status;
+            statusEl.style.opacity = 1;
+            statusEl.style.transition = 'opacity .3s';
+          }, 150);
+
+          substatusEl.style.opacity = 0;
+          setTimeout(() => {
+            substatusEl.textContent = step.sub;
+            substatusEl.style.opacity = 1;
+          }, 150);
+
+          // Update progress
+          progressEl.style.width = step.progress + '%';
+
+          // Mark previous log line as done
+          if (step.prev) {
+            const prevLines = logEl.querySelectorAll('.log-line');
+            const last = prevLines[prevLines.length - 1];
+            if (last) {
+              last.classList.remove('log-line--active');
+              last.classList.add('log-line--done');
+              const iconSpan = last.querySelector('.log-line__icon');
+              if (iconSpan) { iconSpan.className = 'log-line__icon log-line__icon--check'; iconSpan.textContent = '✓'; }
+            }
+          }
+
+          // Add log line
+          const line = document.createElement('div');
+          line.className = 'log-line' + (step.icon === 'spinner' ? ' log-line--active' : '');
+          const iconClass = step.icon === 'spinner' ? 'log-line__icon--spinner' : step.icon === 'check' ? 'log-line__icon--check' : 'log-line__icon--dot';
+          const spinnerSvg = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" fill="rgba(34,211,238,.2)"/><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" fill="var(--cyan)"><animateTransform attributeName="transform" type="rotate" dur="0.75s" values="0 12 12;360 12 12" repeatCount="indefinite"/></path></svg>';
+          const iconContent = step.icon === 'spinner' ? spinnerSvg : step.log.charAt(0);
+          line.innerHTML = '<span class="log-line__icon ' + iconClass + '">' + iconContent + '</span><span>' + step.log.substring(2) + '</span>';
+          logEl.appendChild(line);
+          logEl.scrollTop = logEl.scrollHeight;
+
+          // Transition to success
+          if (step.done) {
+            setTimeout(() => {
+              if (webhookError) {
+                // Show error — go back to form
+                document.getElementById('analyzingState').classList.remove('visible');
+                formContent.style.display = '';
+                document.querySelector('.trust-bar').style.display = '';
+                showError('Submission failed — please try again. ' + webhookError.message);
+                input.classList.add('input-field--invalid');
+              } else {
+                document.getElementById('analyzingState').classList.remove('visible');
+                submittedUrl.textContent = linkedinUrl;
+                successState.classList.add('visible');
+                confettiBurst();
+                // Display score from the webhook response
+                displayScore(webhookData);
+              }
+            }, 1500);
+          }
+        }, step.at);
+        timeouts.push(t);
+      });
+    }
+
+    // ── Display Score from webhook response ─────────────
+    function displayScore(data) {
+      const scoreLoading = document.getElementById('scoreLoading');
+      const scoreResult  = document.getElementById('scoreResult');
+
+      scoreLoading.classList.add('hidden');
+      scoreResult.classList.add('visible');
+
+      if (typeof data === 'object' && data !== null) {
+        // JSON response — extract score and category from n8n workflow
+        const score = data.ceo_readiness_score || data.score || data.readinessScore || data.totalScore || data.overall_score || '';
+        const category = data.category || '';
+        const summary = data.summary || data.analysis || data.feedback || data.message || data.details || '';
+
+        // Filter out linkedin_url and evaluated_at from display data
+        const displayData = Object.assign({}, data);
+        delete displayData.linkedin_url;
+        delete displayData.linkedinUrl;
+        delete displayData.evaluated_at;
+
+        let html = '<div class="score-card">';
+
+        // Score as the main hero highlight
+        if (score) {
+          html += '<div class="score-card__hero">';
+          html += '<span class="score-card__value">' + escapeHtml(String(score)) + '</span>';
+          html += '<span class="score-card__value-suffix">/100</span>';
+          html += '</div>';
+          html += '<div class="score-card__label">Executive Readiness Score</div>';
+        }
+
+        if (category) {
+          html += '<div class="score-card__category"><span>' + escapeHtml(String(category)) + '</span></div>';
+        }
+
+        if (summary) {
+          html += '<div class="score-card__body">' + escapeHtml(String(summary)) + '</div>';
+        }
+
+        scoreResult.innerHTML = html;
+      } else if (typeof data === 'string' && data.trim()) {
+        let html = '<div class="score-card">';
+        html += '<div class="score-card__header">';
+        html += '<span class="score-card__label">AI Assessment</span>';
+        html += '</div>';
+        html += '<div class="score-card__body">' + escapeHtml(data) + '</div>';
+        html += '</div>';
+
+        scoreResult.innerHTML = html;
+      } else {
+        scoreResult.innerHTML = '<div class="score-card"><div class="score-card__header"><span class="score-card__label">Assessment Complete</span></div><div class="score-card__body">Your application has been received and processed successfully.</div></div>';
+      }
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // ── Confetti Burst ──────────────────────────────────
+    function confettiBurst() {
+      const colors = ['#2563EB', '#7C3AED', '#22D3EE', '#10B981', '#F59E0B'];
+      const container = document.querySelector('.page-wrapper');
+
+      for (let i = 0; i < 40; i++) {
+        const confetti = document.createElement('div');
+        confetti.style.cssText = `
+          position: fixed;
+          width: ${Math.random() * 8 + 4}px;
+          height: ${Math.random() * 8 + 4}px;
+          background: ${colors[Math.floor(Math.random() * colors.length)]};
+          border-radius: ${Math.random() > .5 ? '50%' : '2px'};
+          top: 50%;
+          left: 50%;
+          z-index: 100;
+          pointer-events: none;
+          opacity: 1;
+        `;
+
+        const angle = (Math.random() * 360) * (Math.PI / 180);
+        const velocity = Math.random() * 300 + 150;
+        const vx = Math.cos(angle) * velocity;
+        const vy = Math.sin(angle) * velocity;
+
+        container.appendChild(confetti);
+
+        let x = 0, y = 0, opacity = 1, rotation = 0;
+        const rotSpeed = (Math.random() - .5) * 15;
+        const gravity = 400;
+        let startTime = null;
+
+        function animateConfetti(timestamp) {
+          if (!startTime) startTime = timestamp;
+          const elapsed = (timestamp - startTime) / 1000;
+
+          x = vx * elapsed;
+          y = vy * elapsed + .5 * gravity * elapsed * elapsed;
+          rotation += rotSpeed;
+          opacity = Math.max(0, 1 - elapsed / 1.5);
+
+          confetti.style.transform = `translate(${x}px, ${y}px) rotate(${rotation}deg)`;
+          confetti.style.opacity = opacity;
+
+          if (opacity > 0) {
+            requestAnimationFrame(animateConfetti);
+          } else {
+            confetti.remove();
+          }
+        }
+
+        requestAnimationFrame(animateConfetti);
+      }
+    }
+
+    // ── AI Typing Effect in Hint ──────────────────────
+    (function typingEffect() {
+      const messages = [
+        'Paste a valid LinkedIn profile URL',
+        'We analyze 50+ leadership signals',
+        'AI screening takes less than 30s',
+        'Your data is fully encrypted',
+      ];
+      let msgIndex = 0;
+
+      setInterval(() => {
+        if (document.activeElement === input || input.value.trim()) return;
+        msgIndex = (msgIndex + 1) % messages.length;
+        const target = messages[msgIndex];
+        hintText.style.opacity = 0;
+        setTimeout(() => {
+          hintText.textContent = target;
+          hintText.style.opacity = 1;
+          hintText.style.transition = 'opacity .4s';
+        }, 300);
+      }, 4000);
+    })();
+  </script>
+</body>
+</html>

@@ -1548,7 +1548,10 @@
           html += '<div class="score-card__body">' + escapeHtml(String(summary)) + '</div>';
         }
 
+        html += '</div>';
+
         scoreResult.innerHTML = html;
+        confettiBurst();
       } else if (typeof data === 'string' && data.trim()) {
         let html = '<div class="score-card">';
         html += '<div class="score-card__header">';

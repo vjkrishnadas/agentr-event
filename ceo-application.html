@@ -740,6 +740,52 @@
       color: var(--white);
     }
 
+    .score-card__name {
+      font-family: 'Space Grotesk', sans-serif;
+      font-size: 1.1rem;
+      font-weight: 600;
+      color: var(--white);
+      margin-bottom: 6px;
+      opacity: .9;
+    }
+
+    .score-card__breakdown {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: .72rem;
+      color: var(--slate-400);
+      margin-bottom: 20px;
+    }
+
+    .score-card__keypoints {
+      margin-top: 20px;
+      padding-top: 20px;
+      border-top: 1px solid var(--slate-700);
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      text-align: left;
+    }
+
+    .score-card__kp {
+      font-size: .8rem;
+      line-height: 1.5;
+      color: var(--slate-300);
+      padding: 10px 14px;
+      border-radius: 10px;
+      background: rgba(15, 23, 42, .5);
+      border: 1px solid var(--slate-700);
+    }
+
+    .score-card__kp--strength {
+      border-color: rgba(16, 185, 129, .2);
+      background: rgba(16, 185, 129, .06);
+    }
+
+    .score-card__kp--concern {
+      border-color: rgba(239, 68, 68, .2);
+      background: rgba(239, 68, 68, .06);
+    }
+
     .score-card__raw {
       margin-top: 16px;
       padding: 14px;
@@ -1414,99 +1460,134 @@
       setTimeout(() => { input.style.animation = ''; }, 400);
     }
 
-    // ── Analyzing Sequence (30s) ────────────────────────
+    // ── Analyzing Sequence (driven by real webhook) ─────
     function runAnalyzingSequence(linkedinUrl, webhookPromise) {
       const statusEl    = document.getElementById('analyzeStatus');
       const substatusEl = document.getElementById('analyzeSubstatus');
       const progressEl  = document.getElementById('progressFill');
       const logEl       = document.getElementById('analysisLog');
 
-      let webhookDone = false;
-      let webhookError = null;
-      let webhookData = null;
+      const spinnerSvg = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" fill="rgba(34,211,238,.2)"/><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" fill="var(--cyan)"><animateTransform attributeName="transform" type="rotate" dur="0.75s" values="0 12 12;360 12 12" repeatCount="indefinite"/></path></svg>';
 
+      // Helper: update status text with fade
+      function setStatus(text, sub) {
+        statusEl.style.opacity = 0;
+        setTimeout(() => {
+          statusEl.textContent = text;
+          statusEl.style.opacity = 1;
+          statusEl.style.transition = 'opacity .3s';
+        }, 150);
+        substatusEl.style.opacity = 0;
+        setTimeout(() => {
+          substatusEl.textContent = sub || '';
+          substatusEl.style.opacity = 1;
+        }, 150);
+      }
+
+      // Helper: mark last log line as done
+      function markPrevDone() {
+        const prevLines = logEl.querySelectorAll('.log-line');
+        const last = prevLines[prevLines.length - 1];
+        if (last) {
+          last.classList.remove('log-line--active');
+          last.classList.add('log-line--done');
+          const iconSpan = last.querySelector('.log-line__icon');
+          if (iconSpan) { iconSpan.className = 'log-line__icon log-line__icon--check'; iconSpan.textContent = '✓'; }
+        }
+      }
+
+      // Helper: add a log line
+      function addLog(text, type) {
+        const line = document.createElement('div');
+        line.className = 'log-line' + (type === 'spinner' ? ' log-line--active' : '');
+        const iconClass = type === 'spinner' ? 'log-line__icon--spinner' : type === 'check' ? 'log-line__icon--check' : 'log-line__icon--dot';
+        const iconContent = type === 'spinner' ? spinnerSvg : '✓';
+        line.innerHTML = '<span class="log-line__icon ' + iconClass + '">' + iconContent + '</span><span>' + text + '</span>';
+        logEl.appendChild(line);
+        logEl.scrollTop = logEl.scrollHeight;
+      }
+
+      // Helper: transition to results
+      function showResults(data) {
+        markPrevDone();
+        addLog('Report ready', 'check');
+        setStatus('Done!', '');
+        progressEl.style.width = '100%';
+
+        setTimeout(() => {
+          document.getElementById('analyzingState').classList.remove('visible');
+          submittedUrl.textContent = linkedinUrl;
+          successState.classList.add('visible');
+          displayScore(data);
+        }, 1200);
+      }
+
+      // Helper: transition to error
+      function showFail(err) {
+        document.getElementById('analyzingState').classList.remove('visible');
+        formContent.style.display = '';
+        document.querySelector('.trust-bar').style.display = '';
+        showError('Submission failed — please try again. ' + (err.message || err));
+        input.classList.add('input-field--invalid');
+      }
+
+      // Phase 1: immediate — connecting
+      setStatus('Connecting to LinkedIn...', 'Establishing secure connection');
+      progressEl.style.width = '5%';
+      addLog('Initiating profile fetch...', 'spinner');
+
+      // Phase 2: 3s — fetching profile (Apify scraper is running)
+      setTimeout(() => {
+        markPrevDone();
+        addLog('Connection established', 'check');
+        setStatus('Fetching profile data...', 'Scraping LinkedIn profile via Apify');
+        progressEl.style.width = '15%';
+        addLog('Extracting profile data...', 'spinner');
+      }, 3000);
+
+      // Phase 3: 12s — profile data likely received, AI analysis starting
+      setTimeout(() => {
+        markPrevDone();
+        addLog('Profile data received', 'check');
+        setStatus('Running AI assessment...', 'Evaluating leadership & executive signals');
+        progressEl.style.width = '40%';
+        addLog('Running AI models...', 'spinner');
+      }, 12000);
+
+      // Phase 4: 25s — still processing, keep user informed
+      setTimeout(() => {
+        markPrevDone();
+        addLog('AI assessment in progress', 'check');
+        setStatus('Compiling results...', 'Building your executive scorecard');
+        progressEl.style.width = '65%';
+        addLog('Generating scorecard...', 'spinner');
+      }, 25000);
+
+      // Phase 5: 40s — long wait, reassure
+      setTimeout(() => {
+        markPrevDone();
+        addLog('Scorecard generation in progress', 'check');
+        setStatus('Almost there...', 'Saving results and preparing report');
+        progressEl.style.width = '80%';
+        addLog('Finalizing report...', 'spinner');
+      }, 40000);
+
+      // Slow progress crawl for very long waits (55s+)
+      const crawlTimer = setTimeout(() => {
+        progressEl.style.width = '92%';
+        setStatus('Still working...', 'Complex profiles take a bit longer');
+      }, 55000);
+
+      // The real trigger: webhook response
       webhookPromise
-        .then(data => { webhookDone = true; webhookData = data; })
-        .catch(err => { webhookDone = true; webhookError = err; });
-
-      // Analysis steps with timing
-      const steps = [
-        { at: 0,     status: 'Connecting to LinkedIn...', sub: 'Establishing secure connection', progress: 5,   log: '→ Initiating profile fetch...', icon: 'spinner' },
-        { at: 3000,  status: 'Fetching profile data...', sub: 'Retrieving profile information', progress: 15,  log: '✓ Connection established', icon: 'check', prev: true },
-        { at: 7000,  status: 'Analyzing your profile...', sub: 'Scanning experience & skills', progress: 30,  log: '→ Extracting profile data...', icon: 'spinner' },
-        { at: 12000, status: 'Evaluating leadership signals...', sub: 'Assessing executive experience', progress: 50, log: '✓ Profile data received', icon: 'check', prev: true },
-        { at: 17000, status: 'Running AI assessment...', sub: 'Generating executive readiness score', progress: 70, log: '→ Running AI models...', icon: 'spinner' },
-        { at: 23000, status: 'Compiling results...', sub: 'Building your scorecard', progress: 90, log: '✓ AI assessment complete', icon: 'check', prev: true },
-        { at: 28000, status: 'Almost done...', sub: 'Preparing your results', progress: 98, log: '→ Finalizing report...', icon: 'spinner' },
-        { at: 30000, status: 'Done!', sub: '', progress: 100, log: '✓ Report ready', icon: 'check', prev: true, done: true },
-      ];
-
-      const timeouts = [];
-
-      steps.forEach(step => {
-        const t = setTimeout(() => {
-          // Update status
-          statusEl.style.opacity = 0;
-          setTimeout(() => {
-            statusEl.textContent = step.status;
-            statusEl.style.opacity = 1;
-            statusEl.style.transition = 'opacity .3s';
-          }, 150);
-
-          substatusEl.style.opacity = 0;
-          setTimeout(() => {
-            substatusEl.textContent = step.sub;
-            substatusEl.style.opacity = 1;
-          }, 150);
-
-          // Update progress
-          progressEl.style.width = step.progress + '%';
-
-          // Mark previous log line as done
-          if (step.prev) {
-            const prevLines = logEl.querySelectorAll('.log-line');
-            const last = prevLines[prevLines.length - 1];
-            if (last) {
-              last.classList.remove('log-line--active');
-              last.classList.add('log-line--done');
-              const iconSpan = last.querySelector('.log-line__icon');
-              if (iconSpan) { iconSpan.className = 'log-line__icon log-line__icon--check'; iconSpan.textContent = '✓'; }
-            }
-          }
-
-          // Add log line
-          const line = document.createElement('div');
-          line.className = 'log-line' + (step.icon === 'spinner' ? ' log-line--active' : '');
-          const iconClass = step.icon === 'spinner' ? 'log-line__icon--spinner' : step.icon === 'check' ? 'log-line__icon--check' : 'log-line__icon--dot';
-          const spinnerSvg = '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,1A11,11,0,1,0,23,12,11,11,0,0,0,12,1Zm0,19a8,8,0,1,1,8-8A8,8,0,0,1,12,20Z" fill="rgba(34,211,238,.2)"/><path d="M10.14,1.16a11,11,0,0,0-9,8.92A1.59,1.59,0,0,0,2.46,12,1.52,1.52,0,0,0,4.11,10.7a8,8,0,0,1,6.66-6.61A1.42,1.42,0,0,0,12,2.69h0A1.57,1.57,0,0,0,10.14,1.16Z" fill="var(--cyan)"><animateTransform attributeName="transform" type="rotate" dur="0.75s" values="0 12 12;360 12 12" repeatCount="indefinite"/></path></svg>';
-          const iconContent = step.icon === 'spinner' ? spinnerSvg : step.log.charAt(0);
-          line.innerHTML = '<span class="log-line__icon ' + iconClass + '">' + iconContent + '</span><span>' + step.log.substring(2) + '</span>';
-          logEl.appendChild(line);
-          logEl.scrollTop = logEl.scrollHeight;
-
-          // Transition to success
-          if (step.done) {
-            setTimeout(() => {
-              if (webhookError) {
-                // Show error — go back to form
-                document.getElementById('analyzingState').classList.remove('visible');
-                formContent.style.display = '';
-                document.querySelector('.trust-bar').style.display = '';
-                showError('Submission failed — please try again. ' + webhookError.message);
-                input.classList.add('input-field--invalid');
-              } else {
-                document.getElementById('analyzingState').classList.remove('visible');
-                submittedUrl.textContent = linkedinUrl;
-                successState.classList.add('visible');
-                confettiBurst();
-                // Display score from the webhook response
-                displayScore(webhookData);
-              }
-            }, 1500);
-          }
-        }, step.at);
-        timeouts.push(t);
-      });
+        .then(data => {
+          clearTimeout(crawlTimer);
+          showResults(data);
+        })
+        .catch(err => {
+          clearTimeout(crawlTimer);
+          showFail(err);
+        });
     }
 
     // ── Display Score from webhook response ─────────────
@@ -1518,34 +1599,55 @@
       scoreResult.classList.add('visible');
 
       if (typeof data === 'object' && data !== null) {
-        // JSON response — extract score and category from n8n workflow
-        const score = data.ceo_readiness_score || data.score || data.readinessScore || data.totalScore || data.overall_score || '';
-        const category = data.category || '';
-        const summary = data.summary || data.analysis || data.feedback || data.message || data.details || '';
+        // n8n workflow returns: candidate_name, score, score_percent, category, key_point_1..5
+        const candidateName = data.candidate_name || '';
+        const scorePercent  = data.score_percent || data.ceo_readiness_score || '';
+        const scoreRaw      = data.score || '';
+        const category      = data.category || '';
 
-        // Filter out linkedin_url and evaluated_at from display data
-        const displayData = Object.assign({}, data);
-        delete displayData.linkedin_url;
-        delete displayData.linkedinUrl;
-        delete displayData.evaluated_at;
+        // Collect key points
+        const keyPoints = [];
+        for (let i = 1; i <= 5; i++) {
+          const kp = data['key_point_' + i];
+          if (kp && kp !== '—') keyPoints.push(kp);
+        }
 
         let html = '<div class="score-card">';
 
+        // Candidate name
+        if (candidateName) {
+          html += '<div class="score-card__name">' + escapeHtml(candidateName) + '</div>';
+        }
+
         // Score as the main hero highlight
-        if (score) {
+        if (scorePercent) {
           html += '<div class="score-card__hero">';
-          html += '<span class="score-card__value">' + escapeHtml(String(score)) + '</span>';
+          html += '<span class="score-card__value">' + escapeHtml(String(scorePercent)) + '</span>';
           html += '<span class="score-card__value-suffix">/100</span>';
           html += '</div>';
           html += '<div class="score-card__label">Executive Readiness Score</div>';
         }
 
+        // Category pill
         if (category) {
-          html += '<div class="score-card__category"><span>' + escapeHtml(String(category)) + '</span></div>';
+          html += '<div class="score-card__category"><span>' + escapeHtml(category) + '</span></div>';
         }
 
-        if (summary) {
-          html += '<div class="score-card__body">' + escapeHtml(String(summary)) + '</div>';
+        // Score breakdown (e.g. "3.6 / 5")
+        if (scoreRaw && scoreRaw !== String(scorePercent)) {
+          html += '<div class="score-card__breakdown">Overall: ' + escapeHtml(String(scoreRaw)) + '</div>';
+        }
+
+        // Key points
+        if (keyPoints.length > 0) {
+          html += '<div class="score-card__keypoints">';
+          keyPoints.forEach(function(kp) {
+            var isStrength = kp.startsWith('✅');
+            var isConcern  = kp.startsWith('❌');
+            var cls = isStrength ? 'score-card__kp--strength' : isConcern ? 'score-card__kp--concern' : '';
+            html += '<div class="score-card__kp ' + cls + '">' + escapeHtml(kp) + '</div>';
+          });
+          html += '</div>';
         }
 
         html += '</div>';
@@ -1554,15 +1656,13 @@
         confettiBurst();
       } else if (typeof data === 'string' && data.trim()) {
         let html = '<div class="score-card">';
-        html += '<div class="score-card__header">';
-        html += '<span class="score-card__label">AI Assessment</span>';
-        html += '</div>';
+        html += '<div class="score-card__label" style="border-bottom:none;margin-bottom:12px;padding-bottom:0;">AI Assessment</div>';
         html += '<div class="score-card__body">' + escapeHtml(data) + '</div>';
         html += '</div>';
 
         scoreResult.innerHTML = html;
       } else {
-        scoreResult.innerHTML = '<div class="score-card"><div class="score-card__header"><span class="score-card__label">Assessment Complete</span></div><div class="score-card__body">Your application has been received and processed successfully.</div></div>';
+        scoreResult.innerHTML = '<div class="score-card"><div class="score-card__label" style="border-bottom:none;margin-bottom:0;padding-bottom:0;">Assessment Complete</div><div class="score-card__body" style="text-align:center;">Your application has been received and processed successfully.</div></div>';
       }
     }
 
